@@ -1,7 +1,7 @@
 const { validationResult } = require("express-validator");
 const Goal = require("../models/goal");
 const User = require("../models/user");
-const GoalStatus = require("../enums/goalStatus");
+const { GoalStatus } = require("../enums/goalStatus");
 
 exports.getGoal = async (req, res, next) => {
   try {
@@ -125,7 +125,6 @@ exports.updateGoal = async (req, res, next) => {
   }
 };
 
-//prepare api for front-end , swagger?
 exports.deleteGoal = async (req, res, next) => {
   try {
     const goalId = req.params.goalId;
@@ -150,6 +149,50 @@ exports.deleteGoal = async (req, res, next) => {
     res.status(200).json({ message: "Goal deleted!" });
   } catch (err) {
     console.log("error deleting goal by id:", err);
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
+exports.updateStatusGoal = async (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      const error = new Error("Validation failed, check entered data");
+      error.statusCode = 422;
+      throw error;
+    }
+    const goalId = req.params.goalId;
+    const { status } = req.body;
+
+    const goal = await Goal.findById(goalId);
+
+    if (!goal) {
+      const error = new Error("Goal not found");
+      error.statusCode = 404;
+      throw error;
+    }
+    if (goal.author.toString() !== req.userId) {
+      const error = new Error("Not authorized");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    if (status === 1) {
+      goal.startDate = new Date().toISOString();
+    } else if (status === 4) {
+      goal.endDate = new Date().toISOString();
+    }
+    goal.status = status ?? goal.status;
+
+    const updatedGoal = await goal.save();
+
+    res
+      .status(200)
+      .json({ message: "Goal start date saved!", updatedGoal: updatedGoal });
+  } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
     }

@@ -7,8 +7,8 @@ const GoalCategory = Object.freeze({
 });
 
 const getCategory = (category) => {
-  const index = Object.keys(GoalCategory).indexOf(category);
-  const value = Object.values(GoalCategory)[index];
+  const index = Object.values(GoalCategory).indexOf(category);
+  const value = Object.keys(GoalCategory)[index];
 
   return value;
 };
