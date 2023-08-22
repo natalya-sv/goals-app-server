@@ -1,6 +1,7 @@
 const { validationResult } = require("express-validator");
 const Goal = require("../models/goal");
 const User = require("../models/user");
+const GoalStatus = require("../enums/goalStatus");
 
 exports.getGoal = async (req, res, next) => {
   try {
@@ -16,7 +17,10 @@ exports.getGoal = async (req, res, next) => {
       error.statusCode = 404;
       throw error;
     }
-    res.status(200).json({ message: "Goal fetched", goal: goal });
+    res.status(200).json({
+      message: "Goal fetched",
+      goal: goal,
+    });
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
@@ -39,7 +43,7 @@ exports.getGoals = async (req, res, next) => {
 
 exports.createGoal = async (req, res, next) => {
   try {
-    const { title, category, description } = req.body;
+    const { title, category, description, type } = req.body;
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       const error = new Error("Validation failed,check entered data");
@@ -51,10 +55,10 @@ exports.createGoal = async (req, res, next) => {
       title: title,
       category: category,
       description: description,
-      status: 0,
-      startDate: new Date(),
+      status: GoalStatus.NOT_STARTED,
+      startDate: null,
       endDate: null,
-      type: 0,
+      type: type,
       author: req.userId,
     });
 
@@ -89,8 +93,7 @@ exports.updateGoal = async (req, res, next) => {
       throw error;
     }
     const goalId = req.params.goalId;
-    const { title, category, description, startDate, endDate, status, type } =
-      req.body;
+    const { title, category, description, type } = req.body;
 
     const goal = await Goal.findById(goalId);
 
@@ -107,9 +110,6 @@ exports.updateGoal = async (req, res, next) => {
     goal.title = title ?? goal.title;
     goal.category = category ?? goal.category;
     goal.description = description ?? goal.description;
-    goal.status = status ?? goal.status;
-    goal.startDate = startDate ?? goal.startDate;
-    goal.endDate = endDate ?? goal.endDate;
     goal.type = type ?? goal.type;
 
     const updatedGoal = await goal.save();

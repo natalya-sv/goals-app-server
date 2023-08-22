@@ -11,19 +11,22 @@ const goalSchema = new Schema(
       type: String,
       required: true,
     },
+    startDate: {
+      type: Date,
+      default: null,
+    },
+    endDate: {
+      type: Date,
+      default: null,
+    },
     category: {
-      type: String,
+      type: Number,
       required: true,
     },
     status: {
       type: Number,
       required: true,
       default: 0,
-    },
-    startDate: { type: Date, default: Date.now, required: true },
-    endDate: {
-      type: Date,
-      default: null,
     },
     type: {
       type: Number,
