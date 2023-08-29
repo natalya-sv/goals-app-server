@@ -11,11 +11,11 @@ const goalSchema = new Schema(
       type: String,
       required: true,
     },
-    startDate: {
+    start_date: {
       type: Date,
       default: null,
     },
-    endDate: {
+    end_date: {
       type: Date,
       default: null,
     },
@@ -38,6 +38,16 @@ const goalSchema = new Schema(
       ref: "User",
       required: true,
     },
+    frequency: {
+      type: Number,
+      default: null,
+    },
+    reminders: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Reminder",
+      },
+    ],
   },
   { timestamps: true }
 );

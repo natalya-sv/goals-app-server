@@ -56,10 +56,13 @@ exports.createGoal = async (req, res, next) => {
       category: category,
       description: description,
       status: GoalStatus.NOT_STARTED,
-      startDate: null,
-      endDate: null,
+      start_date: null,
+      end_date: null,
       type: type,
       author: req.userId,
+      frequency: null,
+      push_token: null,
+      reminders: [],
     });
 
     const result = await newGoal.save();
@@ -181,9 +184,9 @@ exports.updateStatusGoal = async (req, res, next) => {
     }
 
     if (status === 1) {
-      goal.startDate = new Date().toISOString();
+      goal.start_date = new Date().toISOString();
     } else if (status === 4) {
-      goal.endDate = new Date().toISOString();
+      goal.end_date = new Date().toISOString();
     }
     goal.status = status ?? goal.status;
 
