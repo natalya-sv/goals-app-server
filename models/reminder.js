@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const { GoalReminder } = require("../enums/reminder");
 const Schema = mongoose.Schema;
 
 const reminderSchema = new Schema(

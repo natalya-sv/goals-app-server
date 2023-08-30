@@ -2,7 +2,7 @@ const { validationResult } = require("express-validator");
 const Goal = require("../models/goal");
 const User = require("../models/user");
 const { GoalStatus } = require("../enums/goalStatus");
-
+const Reminder = require("../models/reminder");
 exports.getGoal = async (req, res, next) => {
   try {
     const goalId = req.params.goalId;
@@ -62,7 +62,7 @@ exports.createGoal = async (req, res, next) => {
       author: req.userId,
       frequency: null,
       push_token: null,
-      reminders: [],
+      reminder: null,
     });
 
     const result = await newGoal.save();
@@ -132,6 +132,7 @@ exports.deleteGoal = async (req, res, next) => {
   try {
     const goalId = req.params.goalId;
     const goal = await Goal.findById(goalId);
+    const userId = goal.author;
 
     if (!goal) {
       const error = new Error("Goal not found");
@@ -145,9 +146,11 @@ exports.deleteGoal = async (req, res, next) => {
     }
     await Goal.findByIdAndRemove(goalId);
 
-    const user = await User.findById(req.userId);
+    const user = await User.findById(userId);
     user.goals.pull(goalId);
     await user.save();
+
+    await Reminder.findOneAndRemove({ goal: goalId });
 
     res.status(200).json({ message: "Goal deleted!" });
   } catch (err) {

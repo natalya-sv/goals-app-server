@@ -42,12 +42,10 @@ const goalSchema = new Schema(
       type: Number,
       default: null,
     },
-    reminders: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "Reminder",
-      },
-    ],
+    reminder: {
+      type: Schema.Types.ObjectId,
+      ref: "Reminder",
+    },
   },
   { timestamps: true }
 );

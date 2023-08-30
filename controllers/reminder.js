@@ -1,9 +1,6 @@
 const { validationResult } = require("express-validator");
 const Reminder = require("../models/reminder");
-const reminder = require("../models/reminder");
-const User = require("../models/user");
 const Goal = require("../models/goal");
-const { GoalReminder } = require("../enums/reminder");
 
 exports.getReminder = async (req, res, next) => {
   const reminderId = req.params.reminderId;
@@ -15,11 +12,7 @@ exports.getReminder = async (req, res, next) => {
       error.statusCode = 404;
       throw error;
     }
-    if (reminder.author.toString() !== req.userId) {
-      const error = new Error("Not authorized");
-      error.statusCode = 404;
-      throw error;
-    }
+
     res.status(200).json({
       message: "Reminder fetched",
       reminder: reminder,
@@ -54,7 +47,7 @@ exports.createReminder = async (req, res, next) => {
       const goal = await Goal.findById(goalId);
 
       if (goal) {
-        goal.reminders.push(newReminder);
+        goal.reminder = newReminder;
         await goal.save();
         res.status(201).json({
           message: "Reminder created!",
@@ -87,11 +80,7 @@ exports.updateReminder = async (req, res, next) => {
       error.statusCode = 404;
       throw error;
     }
-    if (reminder.author.toString() !== req.userId) {
-      const error = new Error("Not authorized");
-      error.statusCode = 404;
-      throw error;
-    }
+
     reminder.type = type;
     reminder.weekday = weekday;
     reminder.time = time;
@@ -112,21 +101,17 @@ exports.deleteReminder = async (req, res, next) => {
   try {
     const reminderId = req.params.reminderId;
     const reminder = await Reminder.findById(reminderId);
-
+    const goalId = reminder.goal;
     if (!reminder) {
       const error = new Error("Reminder not found");
       error.statusCode = 404;
       throw error;
     }
-    if (reminder.author.toString() !== req.userId) {
-      const error = new Error("Not authorized");
-      error.statusCode = 404;
-      throw error;
-    }
+
     await Reminder.findByIdAndRemove(reminderId);
 
-    const goal = await Goal.findById(req.goalId);
-    goal.reminders.pull(reminderId);
+    const goal = await Goal.findById(goalId);
+    goal.reminder = null;
     await goal.save();
 
     res.status(200).json({ message: "Reminder deleted!" });
