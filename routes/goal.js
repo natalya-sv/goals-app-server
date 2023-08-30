@@ -30,4 +30,5 @@ router.post(
 
 router.delete("/goals/:goalId", isAuth, goalsController.deleteGoal);
 
+router.put("/status/:goalId", isAuth, goalsController.updateStatusGoal);
 module.exports = router;

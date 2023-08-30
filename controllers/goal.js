@@ -1,8 +1,8 @@
 const { validationResult } = require("express-validator");
 const Goal = require("../models/goal");
 const User = require("../models/user");
-const GoalStatus = require("../enums/goalStatus");
-
+const { GoalStatus } = require("../enums/goalStatus");
+const Reminder = require("../models/reminder");
 exports.getGoal = async (req, res, next) => {
   try {
     const goalId = req.params.goalId;
@@ -56,10 +56,13 @@ exports.createGoal = async (req, res, next) => {
       category: category,
       description: description,
       status: GoalStatus.NOT_STARTED,
-      startDate: null,
-      endDate: null,
+      start_date: null,
+      end_date: null,
       type: type,
       author: req.userId,
+      frequency: null,
+      push_token: null,
+      reminder: null,
     });
 
     const result = await newGoal.save();
@@ -125,11 +128,11 @@ exports.updateGoal = async (req, res, next) => {
   }
 };
 
-//prepare api for front-end , swagger?
 exports.deleteGoal = async (req, res, next) => {
   try {
     const goalId = req.params.goalId;
     const goal = await Goal.findById(goalId);
+    const userId = goal.author;
 
     if (!goal) {
       const error = new Error("Goal not found");
@@ -143,13 +146,59 @@ exports.deleteGoal = async (req, res, next) => {
     }
     await Goal.findByIdAndRemove(goalId);
 
-    const user = await User.findById(req.userId);
+    const user = await User.findById(userId);
     user.goals.pull(goalId);
     await user.save();
+
+    await Reminder.findOneAndRemove({ goal: goalId });
 
     res.status(200).json({ message: "Goal deleted!" });
   } catch (err) {
     console.log("error deleting goal by id:", err);
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
+exports.updateStatusGoal = async (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      const error = new Error("Validation failed, check entered data");
+      error.statusCode = 422;
+      throw error;
+    }
+    const goalId = req.params.goalId;
+    const { status } = req.body;
+
+    const goal = await Goal.findById(goalId);
+
+    if (!goal) {
+      const error = new Error("Goal not found");
+      error.statusCode = 404;
+      throw error;
+    }
+    if (goal.author.toString() !== req.userId) {
+      const error = new Error("Not authorized");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    if (status === 1) {
+      goal.start_date = new Date().toISOString();
+    } else if (status === 4) {
+      goal.end_date = new Date().toISOString();
+    }
+    goal.status = status ?? goal.status;
+
+    const updatedGoal = await goal.save();
+
+    res
+      .status(200)
+      .json({ message: "Goal start date saved!", updatedGoal: updatedGoal });
+  } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
     }

@@ -7,4 +7,10 @@ const GoalStatus = Object.freeze({
   ABORTED: 5,
 });
 
-module.exports = GoalStatus;
+const getStatus = (status) => {
+  const index = Object.values(GoalStatus).indexOf(status);
+  const value = Object.keys(GoalStatus)[index];
+
+  return value;
+};
+module.exports = { GoalStatus, getStatus };

@@ -21,6 +21,15 @@ const userSchema = new Schema(
         ref: "Goal",
       },
     ],
+    push_token: {
+      type: String,
+      default: null,
+    },
+    deleted: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
   },
   { timestamps: true }
 );

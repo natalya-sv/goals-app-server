@@ -59,7 +59,7 @@ exports.login = async (req, res, next) => {
         userId: loadedUser._id.toString(),
       },
       process.env.SECRET_JWT,
-      { expiresIn: "3h" }
+      { expiresIn: "10 days" }
     );
     res.status(200).json({ token: token, userId: loadedUser._id.toString() });
   } catch (err) {

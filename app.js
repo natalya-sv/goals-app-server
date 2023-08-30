@@ -4,6 +4,7 @@ const app = express();
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const userRoutes = require("./routes/user");
+const remindeRoutes = require("./routes/reminder");
 require("dotenv").config();
 
 app.use(bodyParser.json());
@@ -18,11 +19,13 @@ app.use((req, res, next) => {
 });
 app.use(goalRoutes);
 app.use(userRoutes);
+app.use(remindeRoutes);
 
 app.use((error, req, res, next) => {
   const status = error.statusCode || 500;
   const message = error.message;
   const data = error.data;
+  // console.log("err", error);
   res.status(status).json({ message: message, data: data });
 });
 
