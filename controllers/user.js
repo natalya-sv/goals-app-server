@@ -2,6 +2,7 @@ const { validationResult } = require("express-validator");
 const User = require("../models/user");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const sendEmail = require("../utils");
 require("dotenv").config();
 
 exports.createUser = async (req, res, next) => {
@@ -62,6 +63,32 @@ exports.login = async (req, res, next) => {
       { expiresIn: "10 days" }
     );
     res.status(200).json({ token: token, userId: loadedUser._id.toString() });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
+exports.changePassword = async (req, res, next) => {
+  try {
+    const { newPassword, email } = req.body;
+    const errors = validationResult(req);
+    const user = await User.findOne({ email: email });
+    if (!user) {
+      const error = new Error("User not found");
+      error.statusCode = 404;
+      throw error;
+    }
+    const result = await sendEmail(
+      email,
+      "Password reset",
+      "Reset your password via the link.",
+      "change-password"
+    );
+
+    res.status(200).json({ message: "Check email" });
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
