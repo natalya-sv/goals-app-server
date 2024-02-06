@@ -19,7 +19,7 @@ exports.createUser = async (req, res, next) => {
     }
     const { email, username, password } = req.body;
 
-    const hashedPassword = await bcrypt.hash(password, 12);
+    const hashedPassword = await bcrypt.hash(password, bcryptSalt);
     const user = new User({
       username: username,
       email: email,
@@ -136,7 +136,16 @@ exports.resetPassword = async (req, res, next) => {
           const hash = await bcrypt.hash(password, Number(bcryptSalt));
           await User.updateOne({ _id: userId }, { $set: { password: hash } });
           await passwordResetToken.deleteOne();
-          console.log("Success resetting password");
+          const user = await User.findOne({ _id: userId });
+
+          if (user && user.email) {
+            await sendEmail(
+              user.email,
+              "Password has been reset!",
+              { name: user.username },
+              "./views/password-reset.hbs"
+            );
+          }
         } else {
           throw new Error("Invalid or expired password reset token");
         }

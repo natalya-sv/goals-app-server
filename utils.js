@@ -15,15 +15,18 @@ const sendEmail = async (email, subject, payload, template) => {
       },
     });
 
-    const source = fs.readFileSync(path.join(__dirname, template), "utf8");
-    const compiledTemplate = hbs.compile(source);
-    await transporter.sendMail({
-      from: `Goals App ${process.env.EMAIL_USER}`,
-      to: email,
-      subject: subject,
-      html: compiledTemplate(payload),
-    });
-    return true;
+    if (payload && template) {
+      const source = fs.readFileSync(path.join(__dirname, template), "utf8");
+      const compiledTemplate = hbs.compile(source);
+
+      await transporter.sendMail({
+        from: `Goals App ${process.env.EMAIL_USER}`,
+        to: email,
+        subject: subject,
+        html: compiledTemplate(payload),
+      });
+      return true;
+    }
   } catch (err) {
     console.log(err, "email not sent");
     throw new Error(err);
