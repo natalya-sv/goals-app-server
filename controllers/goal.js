@@ -3,6 +3,7 @@ const Goal = require("../models/goal");
 const User = require("../models/user");
 const { GoalStatus } = require("../enums/goalStatus");
 const Reminder = require("../models/reminder");
+
 exports.getGoal = async (req, res, next) => {
   try {
     const goalId = req.params.goalId;
