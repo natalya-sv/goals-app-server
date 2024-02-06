@@ -5,9 +5,13 @@ const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const userRoutes = require("./routes/user");
 const remindeRoutes = require("./routes/reminder");
+const hbs = require("express-hbs");
+
 require("dotenv").config();
 
 app.use(bodyParser.json());
+app.use(express.urlencoded({ extended: false }));
+
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader(
@@ -20,12 +24,20 @@ app.use((req, res, next) => {
 app.use(goalRoutes);
 app.use(userRoutes);
 app.use(remindeRoutes);
+app.engine(
+  "hbs",
+  hbs.express4({
+    partialsDir: __dirname + "/views",
+  })
+);
+app.set("view engine", "hbs");
+app.set("views", __dirname + "/views");
 
 app.use((error, req, res, next) => {
   const status = error.statusCode || 500;
   const message = error.message;
   const data = error.data;
-  // console.log("err", error);
+  console.log("err", error);
   res.status(status).json({ message: message, data: data });
 });
 
