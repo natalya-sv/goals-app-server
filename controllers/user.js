@@ -19,7 +19,10 @@ exports.createUser = async (req, res, next) => {
     }
     const { email, username, password } = req.body;
 
-    const hashedPassword = await bcrypt.hash(password, 12);
+    if (password.trim().length < 6) {
+      throw new Error("Password must be at least 6 characters");
+    }
+    const hashedPassword = await bcrypt.hash(password.trim(), 12);
     const user = new User({
       username: username,
       email: email,
@@ -30,11 +33,11 @@ exports.createUser = async (req, res, next) => {
     const createdUser = await user.save();
     await sendEmail(
       createdUser.email,
-      "Welcome to the GoalsApp!",
+      "Welcome to the Goals App!",
       {
         name: createdUser.username,
         content:
-          "Welcome to the Goals App! Open the app, add goals and complete your goals!",
+          "Welcome to the Goals App! Open the app, add your goals and start reaching your goals!",
       },
       "./views/email-content.hbs"
     );
@@ -142,7 +145,9 @@ exports.resetPassword = async (req, res, next) => {
     const { password, confirm_password, token, userId } = req.body;
 
     if (password !== confirm_password) {
-      throw new Error("Passwords are not the same!");
+      return res.render("error.hbs", {
+        error: "Passwords are not the same! Try again",
+      });
     }
     if (userId) {
       const passwordResetToken = await Token.findOne({ userId });
@@ -208,7 +213,7 @@ exports.deleteAccountRequest = async (req, res, next) => {
       "Account delete request",
       {
         name: user.username,
-        text: "You requested delete your account.",
+        text: "You requested to delete your account.",
         action: "Please, click the link below to delete your account",
         link: url,
         link_text: "Delete account",
@@ -259,13 +264,13 @@ exports.deleteUserAccount = async (req, res, next) => {
               "Sorry to see you go...",
               {
                 name: user.username,
-                content: "Sorro to see you go... . Come back soon...",
+                content: "Sorry to see you go... . Come back soon...",
               },
               "./views/email-content.hbs"
             );
             res.status(200).json({ message: "Account has been deleted!" });
           } else {
-            throw new Error("Email is not recognized!");
+            throw new Error("User is not recognized!");
           }
         } else {
           throw new Error("Invalid or expired password reset token");
