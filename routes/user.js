@@ -25,8 +25,13 @@ router.post(
 );
 
 router.post("/login", userController.login);
-router.post("/reset-password-email", userController.sendResetPasswordEmail);
+
+router.post("/reset-password-request", userController.resetPasswordRequest);
 router.get("/change-password", userController.changePassword);
 router.post("/reset-password", userController.resetPassword);
+
+router.post("/delete-account-request", userController.deleteAccountRequest);
+router.get("/delete-account", userController.deleteAccount);
+router.post("/delete-user-account", userController.deleteUserAccount);
 
 module.exports = router;
