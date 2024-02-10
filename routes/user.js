@@ -34,4 +34,6 @@ router.post("/delete-account-request", userController.deleteAccountRequest);
 router.get("/delete-account", userController.deleteAccount);
 router.post("/delete-user-account", userController.deleteUserAccount);
 
+router.put("/update-username/:userId", userController.updateUsername);
+router.put("/update-password/:userId", userController.updatePassword);
 module.exports = router;
