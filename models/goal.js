@@ -39,7 +39,7 @@ const goalSchema = new Schema(
       required: true,
     },
     frequency: {
-      type: Number,
+      type: String,
       default: null,
     },
     reminder: {

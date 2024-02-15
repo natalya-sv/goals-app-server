@@ -4,7 +4,7 @@ const Goal = require("../models/goal");
 const Token = require("../models/token");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const sendEmail = require("../utils");
+const { sendEmail } = require("../utils");
 const crypto = require("crypto");
 require("dotenv").config();
 
