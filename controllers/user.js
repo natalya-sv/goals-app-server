@@ -4,7 +4,7 @@ const Goal = require("../models/goal");
 const Token = require("../models/token");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const sendEmail = require("../utils");
+const { sendEmail, generateFieldValidationErrorMessage } = require("../utils");
 const crypto = require("crypto");
 require("dotenv").config();
 
@@ -13,9 +13,9 @@ exports.createUser = async (req, res, next) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      const error = new Error("Validation failed," + errors.msg);
-      error.data = errors.array();
+      const error = new Error("Validation failed");
       error.statusCode = 422;
+      error.message = generateFieldValidationErrorMessage(errors.errors);
       throw error;
     }
     const { email, username, password } = req.body;

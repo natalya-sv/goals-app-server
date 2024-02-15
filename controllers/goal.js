@@ -2,7 +2,7 @@ const { validationResult } = require("express-validator");
 const Goal = require("../models/goal");
 const User = require("../models/user");
 const { GoalStatus } = require("../enums/goalStatus");
-const Reminder = require("../models/reminder");
+const { generateFieldValidationErrorMessage } = require("../utils");
 
 exports.getGoal = async (req, res, next) => {
   try {
@@ -47,8 +47,10 @@ exports.createGoal = async (req, res, next) => {
     const { title, category, description, type } = req.body;
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      const error = new Error("Validation failed,check entered data");
+      const error = new Error("Validation failed, check entered data");
       error.statusCode = 422;
+      error.message = generateFieldValidationErrorMessage(errors.errors);
+
       throw error;
     }
 
@@ -75,8 +77,7 @@ exports.createGoal = async (req, res, next) => {
         await user.save();
         res.status(201).json({
           message: "Goal created!",
-          newGoal: newGoal,
-          author: { _id: user._id, username: user.username },
+          goal: newGoal,
         });
       }
     }
@@ -94,10 +95,12 @@ exports.updateGoal = async (req, res, next) => {
     if (!errors.isEmpty()) {
       const error = new Error("Validation failed, check entered data");
       error.statusCode = 422;
+      error.message = generateFieldValidationErrorMessage(errors.errors);
+
       throw error;
     }
     const goalId = req.params.goalId;
-    const { title, category, description, type } = req.body;
+    const { title, category, description, type, frequency } = req.body;
 
     const goal = await Goal.findById(goalId);
 
@@ -115,12 +118,10 @@ exports.updateGoal = async (req, res, next) => {
     goal.category = category ?? goal.category;
     goal.description = description ?? goal.description;
     goal.type = type ?? goal.type;
-
+    goal.frequency = frequency ?? goal.frequency;
     const updatedGoal = await goal.save();
 
-    res
-      .status(200)
-      .json({ message: "Goal updated!", updatedGoal: updatedGoal });
+    res.status(200).json({ message: "Goal updated!", goal: updatedGoal });
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
@@ -151,9 +152,7 @@ exports.deleteGoal = async (req, res, next) => {
     user.goals.pull(goalId);
     await user.save();
 
-    // await Reminder.findOneAndRemove({ goal: goalId });
-
-    res.status(200).json({ message: "Goal deleted!" });
+    res.status(200).json({ message: "Goal deleted!", goal: goal });
   } catch (err) {
     console.log("error deleting goal by id:", err);
     if (!err.statusCode) {

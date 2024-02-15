@@ -32,4 +32,17 @@ const sendEmail = async (email, subject, payload, template) => {
     throw new Error(err);
   }
 };
-module.exports = sendEmail;
+
+const generateFieldValidationErrorMessage = (errorsArr) => {
+  let errorMessage = "";
+  if (errorsArr.length > 0) {
+    errorMessage;
+    for (let i = 0; i < errorsArr.length; i++) {
+      errorMessage += `${errorsArr[i].msg} in ${errorsArr[i].path}. `;
+    }
+  } else {
+    errorMessage = "Error occured!Check your input";
+  }
+  return errorMessage;
+};
+module.exports = { sendEmail, generateFieldValidationErrorMessage };
