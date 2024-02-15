@@ -20,11 +20,11 @@ const goalSchema = new Schema(
       default: null,
     },
     category: {
-      type: Number,
+      type: String,
       required: true,
     },
     status: {
-      type: Number,
+      type: String,
       required: true,
       default: 0,
     },

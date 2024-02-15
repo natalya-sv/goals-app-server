@@ -1,5 +1,6 @@
 const { validationResult } = require("express-validator");
 const User = require("../models/user");
+const Goal = require("../models/goal");
 const Token = require("../models/token");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
@@ -12,7 +13,7 @@ exports.createUser = async (req, res, next) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      const error = new Error("Validation failed, check entered data");
+      const error = new Error("Validation failed," + errors.msg);
       error.data = errors.array();
       error.statusCode = 422;
       throw error;
@@ -55,7 +56,6 @@ exports.login = async (req, res, next) => {
     let loadedUser;
     const { email, password } = req.body;
     const user = await User.findOne({ email: email });
-
     if (!user) {
       const error = new Error("User not found");
       error.statusCode = 404;
@@ -78,7 +78,15 @@ exports.login = async (req, res, next) => {
       process.env.SECRET_JWT,
       { expiresIn: "10 days" }
     );
-    res.status(200).json({ token: token, userId: loadedUser._id.toString() });
+
+    res.status(200).json({
+      token: token,
+      user: {
+        id: loadedUser._id.toString(),
+        username: loadedUser.username,
+        email: loadedUser.email,
+      },
+    });
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
@@ -92,7 +100,7 @@ exports.resetPasswordRequest = async (req, res, next) => {
     const { email } = req.body;
     const user = await User.findOne({ email: email });
     if (!user) {
-      const error = new Error("User not found");
+      const error = new Error("Email is not recognized!");
       error.statusCode = 404;
       throw error;
     }
@@ -104,7 +112,7 @@ exports.resetPasswordRequest = async (req, res, next) => {
     }
 
     let resetToken = crypto.randomBytes(32).toString("hex");
-    const hash = await bcrypt.hash(resetToken, Number(bcryptSalt));
+    const hash = await bcrypt.hash(resetToken, 12);
 
     await new Token({ userId: user._id, token: hash }).save();
 
@@ -139,7 +147,6 @@ exports.changePassword = async (req, res, next) => {
     next(err);
   }
 };
-
 exports.resetPassword = async (req, res, next) => {
   try {
     const { password, confirm_password, token, userId } = req.body;
@@ -184,7 +191,6 @@ exports.resetPassword = async (req, res, next) => {
     next(err);
   }
 };
-
 exports.deleteAccountRequest = async (req, res, next) => {
   try {
     const { email } = req.body;
@@ -231,7 +237,6 @@ exports.deleteAccountRequest = async (req, res, next) => {
     next(err);
   }
 };
-
 exports.deleteAccount = async (req, res, next) => {
   try {
     const { token, id } = req.query;
@@ -244,8 +249,11 @@ exports.deleteUserAccount = async (req, res, next) => {
   try {
     const { email, password, token, userId } = req.body;
     if (userId && email) {
-      const deleteToken = await Token.findOne({ userId });
+      const deleteToken = await Token.findOne({ userId: userId });
       const user = await User.findOne({ _id: userId });
+      if (!user) {
+        throw new Error("User not found ");
+      }
       if (deleteToken) {
         const isValid = await bcrypt.compare(token, deleteToken.token);
         if (isValid) {
@@ -259,6 +267,7 @@ exports.deleteUserAccount = async (req, res, next) => {
               throw error;
             }
             await User.findOneAndDelete({ _id: userId });
+            await Goal.deleteMany({ author: userId });
             await sendEmail(
               email,
               "Sorry to see you go...",
@@ -278,7 +287,85 @@ exports.deleteUserAccount = async (req, res, next) => {
       } else {
         throw new Error("Invalid or expired password reset token");
       }
+    } else {
+      throw new Error("Id or email not found ");
     }
+  } catch (err) {
+    next(err);
+  }
+};
+exports.updateUsername = async (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      const error = new Error("Validation failed, check entered data");
+      error.data = errors.array();
+      error.statusCode = 422;
+      throw error;
+    }
+    const { username } = req.body;
+    const userId = req.params?.userId;
+    if (userId) {
+      const user = await User.findOne({ _id: userId });
+      if (!user) {
+        const error = new Error("User not found");
+        error.statusCode = 404;
+        throw error;
+      }
+      user.username = username;
+      await user.save();
+
+      res.status(200).json({ message: "Username updated" });
+    } else {
+      const error = new Error("User not found");
+      error.statusCode = 404;
+      throw error;
+    }
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
+exports.updatePassword = async (req, res, next) => {
+  try {
+    const { newPassword } = req.body;
+    const userId = req.params?.userId;
+    if (userId && newPassword) {
+      const user = await User.findOne({ _id: userId });
+
+      if (user) {
+        const hashedPassword = await bcrypt.hash(newPassword, 12);
+        if (user.email) {
+          await User.updateOne(
+            { _id: userId },
+            { $set: { newPassword: hashedPassword } }
+          );
+          await sendEmail(
+            user.email,
+            "Password has been reset!",
+            {
+              name: user.username,
+              action: "You password has been reset.",
+              text: "Please, use new password to login in the Goals App",
+            },
+            "./views/email-request-result.hbs"
+          );
+        } else {
+          const error = new Error("Email not found");
+          error.statusCode = 404;
+          throw error;
+        }
+      }
+    } else {
+      const error = new Error("User not found");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    res.status(200).json({ message: "Password updated" });
   } catch (err) {
     next(err);
   }
