@@ -1,5 +1,6 @@
 const { validationResult } = require("express-validator");
 const User = require("../models/user");
+const Goal = require("../models/goal");
 const Token = require("../models/token");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
@@ -12,7 +13,7 @@ exports.createUser = async (req, res, next) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      const error = new Error("Validation failed, check entered data");
+      const error = new Error("Validation failed," + errors.msg);
       error.data = errors.array();
       error.statusCode = 422;
       throw error;
@@ -77,7 +78,6 @@ exports.login = async (req, res, next) => {
       process.env.SECRET_JWT,
       { expiresIn: "10 days" }
     );
-    console.log(token, loadedUser);
 
     res.status(200).json({
       token: token,
@@ -100,7 +100,7 @@ exports.resetPasswordRequest = async (req, res, next) => {
     const { email } = req.body;
     const user = await User.findOne({ email: email });
     if (!user) {
-      const error = new Error("User not found");
+      const error = new Error("Email is not recognized!");
       error.statusCode = 404;
       throw error;
     }
@@ -249,8 +249,11 @@ exports.deleteUserAccount = async (req, res, next) => {
   try {
     const { email, password, token, userId } = req.body;
     if (userId && email) {
-      const deleteToken = await Token.findOne({ userId });
+      const deleteToken = await Token.findOne({ userId: userId });
       const user = await User.findOne({ _id: userId });
+      if (!user) {
+        throw new Error("User not found ");
+      }
       if (deleteToken) {
         const isValid = await bcrypt.compare(token, deleteToken.token);
         if (isValid) {
@@ -264,6 +267,7 @@ exports.deleteUserAccount = async (req, res, next) => {
               throw error;
             }
             await User.findOneAndDelete({ _id: userId });
+            await Goal.deleteMany({ author: userId });
             await sendEmail(
               email,
               "Sorry to see you go...",
@@ -283,6 +287,8 @@ exports.deleteUserAccount = async (req, res, next) => {
       } else {
         throw new Error("Invalid or expired password reset token");
       }
+    } else {
+      throw new Error("Id or email not found ");
     }
   } catch (err) {
     next(err);

@@ -151,7 +151,7 @@ exports.deleteGoal = async (req, res, next) => {
     user.goals.pull(goalId);
     await user.save();
 
-    await Reminder.findOneAndRemove({ goal: goalId });
+    // await Reminder.findOneAndRemove({ goal: goalId });
 
     res.status(200).json({ message: "Goal deleted!" });
   } catch (err) {
