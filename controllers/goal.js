@@ -2,7 +2,10 @@ const { validationResult } = require("express-validator");
 const Goal = require("../models/goal");
 const User = require("../models/user");
 const { GoalStatus } = require("../enums/goalStatus");
-const { generateFieldValidationErrorMessage } = require("../utils");
+const {
+  generateFieldValidationErrorMessage,
+  getFormattedDay,
+} = require("../utils");
 
 exports.getGoal = async (req, res, next) => {
   try {
@@ -66,6 +69,7 @@ exports.createGoal = async (req, res, next) => {
       frequency: null,
       push_token: null,
       reminder: null,
+      events: [],
     });
 
     const result = await newGoal.save();
@@ -162,14 +166,82 @@ exports.deleteGoal = async (req, res, next) => {
   }
 };
 
-exports.updateStatusGoal = async (req, res, next) => {
+exports.startGoal = async (req, res, next) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      const error = new Error("Validation failed, check entered data");
-      error.statusCode = 422;
+    const goalId = req.params.goalId;
+    const { status } = req.body;
+
+    const goal = await Goal.findById(goalId);
+
+    if (!goal) {
+      const error = new Error("Goal not found");
+      error.statusCode = 404;
       throw error;
     }
+    if (goal.author.toString() !== req.userId) {
+      const error = new Error("Not authorized");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    if (status === "started" && goal.start_date === null) {
+      goal.start_date = new Date().toISOString();
+
+      goal.status = status ?? goal.status;
+
+      const updatedGoal = await goal.save();
+
+      res
+        .status(200)
+        .json({ message: "Goal start date saved!", goal: updatedGoal });
+    } else {
+      throw new Error("Status not correct");
+    }
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
+exports.addEventGoal = async (req, res, next) => {
+  try {
+    const goalId = req.params.goalId;
+    const goal = await Goal.findById(goalId);
+
+    if (!goal) {
+      const error = new Error("Goal not found");
+      error.statusCode = 404;
+      throw error;
+    }
+    if (goal.author.toString() !== req.userId) {
+      const error = new Error("Not authorized");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const today = new Date();
+    const formattedToday = getFormattedDay(today);
+    if (goal.events.includes(formattedToday)) {
+      throw new Error("Day already saved");
+    }
+
+    goal.events.push(formattedToday);
+    if (goal.status === "started") {
+      goal.status = "in progress";
+    }
+    await goal.save();
+    res.status(201).json({ message: "Goal event added!", goal: goal });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+exports.updateStatusGoal = async (req, res, next) => {
+  try {
     const goalId = req.params.goalId;
     const { status } = req.body;
 

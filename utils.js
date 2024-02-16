@@ -45,4 +45,18 @@ const generateFieldValidationErrorMessage = (errorsArr) => {
   }
   return errorMessage;
 };
-module.exports = { sendEmail, generateFieldValidationErrorMessage };
+
+const getFormattedDay = (date) => {
+  if (date) {
+    const formattedToday = `${date.getDate()}-${
+      date.getMonth() + 1
+    }-${date.getFullYear()}`;
+    return formattedToday;
+  }
+  return null;
+};
+module.exports = {
+  sendEmail,
+  generateFieldValidationErrorMessage,
+  getFormattedDay,
+};
