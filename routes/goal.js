@@ -30,6 +30,6 @@ router.post(
 
 router.delete("/goals/:goalId", isAuth, goalsController.deleteGoal);
 
-router.put("/goals/status/:goalId", isAuth, goalsController.startGoal);
+router.put("/goals/status/:goalId", isAuth, goalsController.updateStatusGoal);
 router.put("/goals/events/:goalId", isAuth, goalsController.addEventGoal);
 module.exports = router;

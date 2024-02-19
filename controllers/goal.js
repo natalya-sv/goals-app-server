@@ -166,7 +166,7 @@ exports.deleteGoal = async (req, res, next) => {
   }
 };
 
-exports.startGoal = async (req, res, next) => {
+exports.updateStatusGoal = async (req, res, next) => {
   try {
     const goalId = req.params.goalId;
     const { status } = req.body;
@@ -183,7 +183,7 @@ exports.startGoal = async (req, res, next) => {
       error.statusCode = 404;
       throw error;
     }
-
+    console.log("status:", status);
     if (status === "started" && goal.start_date === null) {
       goal.start_date = new Date().toISOString();
 
@@ -194,6 +194,26 @@ exports.startGoal = async (req, res, next) => {
       res
         .status(200)
         .json({ message: "Goal start date saved!", goal: updatedGoal });
+    } else if (status === "Paused" || status === "In Progress") {
+      goal.status = status;
+      const updatedGoal = await goal.save();
+
+      res.status(200).json({ message: "Goal updated!", goal: updatedGoal });
+    } else if (status === "Accomplished") {
+      goal.end_date = new Date();
+      goal.status = status;
+      const updatedGoal = await goal.save();
+
+      res
+        .status(200)
+        .json({ message: "Goal accomplished!", goal: updatedGoal });
+    } else if (status === "Aborted") {
+      goal.status = "Not started";
+      goal.start_date = null;
+      goal.events = [];
+      const updatedGoal = await goal.save();
+
+      res.status(200).json({ message: "Goal aborted!", goal: updatedGoal });
     } else {
       throw new Error("Status not correct");
     }
@@ -222,54 +242,17 @@ exports.addEventGoal = async (req, res, next) => {
     }
 
     const today = new Date();
-    const formattedToday = getFormattedDay(today);
-    if (goal.events.includes(formattedToday)) {
+    // const formattedToday = getFormattedDay(today);
+    if (goal.events.includes(today)) {
       throw new Error("Day already saved");
     }
 
-    goal.events.push(formattedToday);
+    goal.events.push(today);
     if (goal.status === "started") {
       goal.status = "in progress";
     }
     await goal.save();
     res.status(201).json({ message: "Goal event added!", goal: goal });
-  } catch (err) {
-    if (!err.statusCode) {
-      err.statusCode = 500;
-    }
-    next(err);
-  }
-};
-exports.updateStatusGoal = async (req, res, next) => {
-  try {
-    const goalId = req.params.goalId;
-    const { status } = req.body;
-
-    const goal = await Goal.findById(goalId);
-
-    if (!goal) {
-      const error = new Error("Goal not found");
-      error.statusCode = 404;
-      throw error;
-    }
-    if (goal.author.toString() !== req.userId) {
-      const error = new Error("Not authorized");
-      error.statusCode = 404;
-      throw error;
-    }
-
-    if (status === 1) {
-      goal.start_date = new Date().toISOString();
-    } else if (status === 4) {
-      goal.end_date = new Date().toISOString();
-    }
-    goal.status = status ?? goal.status;
-
-    const updatedGoal = await goal.save();
-
-    res
-      .status(200)
-      .json({ message: "Goal start date saved!", updatedGoal: updatedGoal });
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
