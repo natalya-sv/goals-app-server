@@ -183,8 +183,7 @@ exports.updateStatusGoal = async (req, res, next) => {
       error.statusCode = 404;
       throw error;
     }
-    console.log("status:", status);
-    if (status === "started" && goal.start_date === null) {
+    if (status === "In progress" && goal.start_date === null) {
       goal.start_date = new Date().toISOString();
 
       goal.status = status ?? goal.status;
