@@ -38,6 +38,10 @@ const goalSchema = new Schema(
       ref: "User",
       required: true,
     },
+    events: {
+      type: Array,
+      default: [],
+    },
     frequency: {
       type: String,
       default: null,
