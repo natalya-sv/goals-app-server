@@ -1,10 +1,10 @@
 const GoalStatus = Object.freeze({
-  NOT_STARTED: "NOT_STARTED",
-  STARTED: "STARTED",
-  IN_PROGRESS: "IN_PROGRESS",
-  PAUSED: "PAUSED",
-  ACCOMPLISHED: "ACCOMPLISHED",
-  ABORTED: "ABORTED",
+  STARTED: "Started",
+  NOT_STARTED: "Not started",
+  IN_PROGRESS: "In Progress",
+  PAUSED: "Paused",
+  ACCOMPLISHED: "Accomplished",
+  ABORTED: "Aborted",
 });
 
 const getStatus = (status) => {

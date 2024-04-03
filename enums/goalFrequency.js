@@ -1,5 +1,5 @@
 const GoalFrequency = Object.freeze({
-  DAILY: "DAILY",
-  WEEKLY: "WEEKLY",
+  DAILY: "Daily",
+  WEEKLY: "Weekly",
 });
 module.exports = { GoalFrequency };

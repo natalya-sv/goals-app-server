@@ -181,7 +181,7 @@ exports.updateStatusGoal = async (req, res, next) => {
     const goalId = req.params.goalId;
     const { status } = req.body;
     const goal = await Goal.findById(goalId);
-
+    console.log("new status", status);
     if (!goal) {
       const error = new Error(GOAL_NOT_FOUND);
       error.statusCode = 404;

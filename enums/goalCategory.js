@@ -1,9 +1,10 @@
 const GoalCategory = Object.freeze({
-  PERSONAL_DEVELOPMENT: "PERSONAL_DEVELOPMENT",
-  EDUCATION: "EDUCATION",
-  HOBBY: "HOBBY",
-  BUSINESS: "BUSINESS",
-  HEALTH: "HEALTH",
+  PERSONAL_DEVELOPMENT: "Personal Development",
+  EDUCATION: "Education",
+  HOBBY: "Hobby",
+  BUSINESS: "Business",
+  HEALTH: "Health",
+  SPORT: "Sport",
 });
 
 const getCategory = (category) => {
