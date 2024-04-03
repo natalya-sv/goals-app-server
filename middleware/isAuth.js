@@ -1,11 +1,12 @@
 const jwt = require("jsonwebtoken");
+const { NOT_AUTHENTICATED } = require("../constants");
 require("dotenv").config();
 
 //checks if user is authorized
 module.exports = (req, res, next) => {
   const authHeader = req.get("Authorization");
   if (!authHeader) {
-    const error = new Error("Not authenticated");
+    const error = new Error(NOT_AUTHENTICATED);
     error.statusCode = 401;
     throw error;
   }
@@ -18,7 +19,7 @@ module.exports = (req, res, next) => {
     throw err;
   }
   if (!decodedToken) {
-    const error = new Error("Not authenticated");
+    const error = new Error(NOT_AUTHENTICATED);
     error.statusCode = 401;
     throw error;
   }

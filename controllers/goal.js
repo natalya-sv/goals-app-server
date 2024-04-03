@@ -2,27 +2,38 @@ const { validationResult } = require("express-validator");
 const Goal = require("../models/goal");
 const User = require("../models/user");
 const { GoalStatus } = require("../enums/goalStatus");
+const { generateFieldValidationErrorMessage } = require("../utils");
 const {
-  generateFieldValidationErrorMessage,
-  getFormattedDay,
-} = require("../utils");
+  GOAL_NOT_FOUND,
+  NOT_AUTHORIZED,
+  GOAL_FETCHED,
+  GOALS_FETCHED,
+  VALIDATION_FAILED,
+  GOAL_CREATED,
+  GOAL_UPDATED,
+  GOAL_DELETED,
+  GOAL_ACCOMPLISHED,
+  GOAL_ABORTED,
+  STATUS_NOT_CORRECT,
+  DAY_ALREADY_SAVED,
+} = require("../constants");
 
 exports.getGoal = async (req, res, next) => {
   try {
     const goalId = req.params.goalId;
     const goal = await Goal.findById(goalId);
     if (!goal) {
-      const error = new Error("Goal not found");
+      const error = new Error(GOAL_NOT_FOUND);
       error.statusCode = 404;
       throw error;
     }
     if (goal.author.toString() !== req.userId) {
-      const error = new Error("Not authorized");
+      const error = new Error(NOT_AUTHORZED);
       error.statusCode = 404;
       throw error;
     }
     res.status(200).json({
-      message: "Goal fetched",
+      message: GOAL_FETCHED,
       goal: goal,
     });
   } catch (err) {
@@ -36,7 +47,7 @@ exports.getGoal = async (req, res, next) => {
 exports.getGoals = async (req, res, next) => {
   try {
     const goals = await Goal.find({ author: req.userId });
-    res.status(200).json({ message: "Goals fetched", goals: goals });
+    res.status(200).json({ message: GOALS_FETCHED, goals: goals });
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
@@ -50,7 +61,7 @@ exports.createGoal = async (req, res, next) => {
     const { title, category, description, type } = req.body;
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      const error = new Error("Validation failed, check entered data");
+      const error = new Error(VALIDATION_FAILED);
       error.statusCode = 422;
       error.message = generateFieldValidationErrorMessage(errors.errors);
 
@@ -80,7 +91,7 @@ exports.createGoal = async (req, res, next) => {
         user.goals.push(newGoal);
         await user.save();
         res.status(201).json({
-          message: "Goal created!",
+          message: GOAL_CREATED,
           goal: newGoal,
         });
       }
@@ -97,7 +108,7 @@ exports.updateGoal = async (req, res, next) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      const error = new Error("Validation failed, check entered data");
+      const error = new Error(VALIDATION_FAILED);
       error.statusCode = 422;
       error.message = generateFieldValidationErrorMessage(errors.errors);
 
@@ -109,12 +120,12 @@ exports.updateGoal = async (req, res, next) => {
     const goal = await Goal.findById(goalId);
 
     if (!goal) {
-      const error = new Error("Goal not found");
+      const error = new Error(GOAL_NOT_FOUND);
       error.statusCode = 404;
       throw error;
     }
     if (goal.author.toString() !== req.userId) {
-      const error = new Error("Not authorized");
+      const error = new Error(NOT_AUTHORIZED);
       error.statusCode = 404;
       throw error;
     }
@@ -125,7 +136,7 @@ exports.updateGoal = async (req, res, next) => {
     goal.frequency = frequency ?? goal.frequency;
     const updatedGoal = await goal.save();
 
-    res.status(200).json({ message: "Goal updated!", goal: updatedGoal });
+    res.status(200).json({ message: GOAL_UPDATED, goal: updatedGoal });
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
@@ -141,12 +152,12 @@ exports.deleteGoal = async (req, res, next) => {
     const userId = goal.author;
 
     if (!goal) {
-      const error = new Error("Goal not found");
+      const error = new Error(GOAL_NOT_FOUND);
       error.statusCode = 404;
       throw error;
     }
     if (goal.author.toString() !== req.userId) {
-      const error = new Error("Not authorized");
+      const error = new Error(NOT_AUTHORIZED);
       error.statusCode = 404;
       throw error;
     }
@@ -156,9 +167,8 @@ exports.deleteGoal = async (req, res, next) => {
     user.goals.pull(goalId);
     await user.save();
 
-    res.status(200).json({ message: "Goal deleted!", goal: goal });
+    res.status(200).json({ message: GOAL_DELETED, goal: goal });
   } catch (err) {
-    console.log("error deleting goal by id:", err);
     if (!err.statusCode) {
       err.statusCode = 500;
     }
@@ -170,51 +180,59 @@ exports.updateStatusGoal = async (req, res, next) => {
   try {
     const goalId = req.params.goalId;
     const { status } = req.body;
-
     const goal = await Goal.findById(goalId);
 
     if (!goal) {
-      const error = new Error("Goal not found");
+      const error = new Error(GOAL_NOT_FOUND);
       error.statusCode = 404;
       throw error;
     }
     if (goal.author.toString() !== req.userId) {
-      const error = new Error("Not authorized");
+      const error = new Error(NOT_AUTHORIZED);
       error.statusCode = 404;
       throw error;
     }
-    if (status === "In progress" && goal.start_date === null) {
+    if (status === GoalStatus.IN_PROGRESS && goal.start_date === null) {
       goal.start_date = new Date().toISOString();
 
       goal.status = status ?? goal.status;
 
       const updatedGoal = await goal.save();
 
-      res
-        .status(200)
-        .json({ message: "Goal start date saved!", goal: updatedGoal });
-    } else if (status === "Paused" || status === "In Progress") {
+      res.status(200).json({ message: GOAL_UPDATED, goal: updatedGoal });
+    } else if (
+      status === GoalStatus.PAUSED &&
+      goal.status === GoalStatus.IN_PROGRESS
+    ) {
       goal.status = status;
+      goal.start_date = null;
       const updatedGoal = await goal.save();
 
-      res.status(200).json({ message: "Goal updated!", goal: updatedGoal });
-    } else if (status === "Accomplished") {
+      res.status(200).json({ message: GOAL_UPDATED, goal: updatedGoal });
+    } else if (
+      (goal.status = GoalStatus.PAUSED && status === GoalStatus.IN_PROGRESS)
+    ) {
+      goal.status = status;
+      goal.events = [];
+      goal.start_date = new Date();
+      const updatedGoal = await goal.save();
+
+      res.status(200).json({ message: GOAL_UPDATED, goal: updatedGoal });
+    } else if (status === GoalStatus.ACCOMPLISHED) {
       goal.end_date = new Date();
       goal.status = status;
       const updatedGoal = await goal.save();
 
-      res
-        .status(200)
-        .json({ message: "Goal accomplished!", goal: updatedGoal });
-    } else if (status === "Aborted") {
-      goal.status = "Not started";
+      res.status(200).json({ message: GOAL_ACCOMPLISHED, goal: updatedGoal });
+    } else if (status === GoalStatus.ABORTED) {
+      goal.status = GoalStatus.NOT_STARTED;
       goal.start_date = null;
       goal.events = [];
       const updatedGoal = await goal.save();
 
-      res.status(200).json({ message: "Goal aborted!", goal: updatedGoal });
+      res.status(200).json({ message: GOAL_ABORTED, goal: updatedGoal });
     } else {
-      throw new Error("Status not correct");
+      throw new Error(STATUS_NOT_CORRECT);
     }
   } catch (err) {
     if (!err.statusCode) {
@@ -228,30 +246,30 @@ exports.addEventGoal = async (req, res, next) => {
   try {
     const goalId = req.params.goalId;
     const goal = await Goal.findById(goalId);
+    const { date } = req.body;
 
     if (!goal) {
-      const error = new Error("Goal not found");
+      const error = new Error(GOAL_NOT_FOUND);
       error.statusCode = 404;
       throw error;
     }
     if (goal.author.toString() !== req.userId) {
-      const error = new Error("Not authorized");
+      const error = new Error(NOT_AUTHORIZED);
       error.statusCode = 404;
       throw error;
     }
 
-    const today = new Date();
-    // const formattedToday = getFormattedDay(today);
+    const today = date ?? new Date();
     if (goal.events.includes(today)) {
-      throw new Error("Day already saved");
+      throw new Error(DAY_ALREADY_SAVED);
     }
 
     goal.events.push(today);
-    if (goal.status === "started") {
-      goal.status = "in progress";
+    if (goal.status === GoalStatus.STARTED) {
+      goal.status = GoalStatus.IN_PROGRESS;
     }
     await goal.save();
-    res.status(201).json({ message: "Goal event added!", goal: goal });
+    res.status(201).json({ message: GOAL_UPDATED, goal: goal });
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
