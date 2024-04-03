@@ -6,6 +6,39 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { sendEmail, generateFieldValidationErrorMessage } = require("../utils");
 const crypto = require("crypto");
+const {
+  VALIDATION_FAILED,
+  PASSWORD_LENGTH,
+  WELCOME,
+  WELCOME_CONTENT,
+  USER_CREATED,
+  USER_NOT_FOUND,
+  PASSWORD_IS_INCORRECT,
+  EMAIL_NOT_RECOGNIZED,
+  PASSWORD_RESET,
+  PASSWORD_RESET_TEXT,
+  PASSWORD_RESET_ACTION,
+  CHECK_EMAIL_TO_RESET,
+  PASSWORDS_NOT_THE_SAME,
+  PASSWORD_IS_RESET,
+  PASSWORD_IS_RESET_ACTION,
+  PASSWORD_IS_RESET_TEXT,
+  EXPIRED_TOKEN,
+  ACCOUNT_DELETE_REQUEST,
+  ACCOUNT_DELETE_REQUEST_TEXT,
+  ACCOUNT_DELETE_REQUEST_ACTION,
+  RESET_PASSWORD_LINK_TEXT,
+  DELETE_ACCOUNT_LINK_TEXT,
+  CHECK_EMAIL_FOLLOW_INSTRUCTIONS,
+  SORRY_TO_SEE_YOU_GO,
+  SORRY_TO_SEE_YOU_GO_CONTENT,
+  ACCOUNT_DELETED,
+  ID_OR_EMAIL_NOT_FOUND,
+  USERNAME_UPDATED,
+  EMAIL_NOT_FOUND,
+  PASSWORD_UPDATED,
+  USER_NOT_RECOGNIZED,
+} = require("../constants");
 require("dotenv").config();
 
 const bcryptSalt = process.env.BCRYPT_SALT;
@@ -13,7 +46,7 @@ exports.createUser = async (req, res, next) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      const error = new Error("Validation failed");
+      const error = new Error(VALIDATION_FAILED);
       error.statusCode = 422;
       error.message = generateFieldValidationErrorMessage(errors.errors);
       throw error;
@@ -21,7 +54,7 @@ exports.createUser = async (req, res, next) => {
     const { email, username, password } = req.body;
 
     if (password.trim().length < 6) {
-      throw new Error("Password must be at least 6 characters");
+      throw new Error(PASSWORD_LENGTH);
     }
     const hashedPassword = await bcrypt.hash(password.trim(), 12);
     const user = new User({
@@ -34,15 +67,14 @@ exports.createUser = async (req, res, next) => {
     const createdUser = await user.save();
     await sendEmail(
       createdUser.email,
-      "Welcome to the Goals App!",
+      WELCOME,
       {
         name: createdUser.username,
-        content:
-          "Welcome to the Goals App! Open the app, add your goals and start reaching your goals!",
+        content: WELCOME_CONTENT,
       },
       "./views/email-content.hbs"
     );
-    res.status(201).json({ message: "User created", user: createdUser });
+    res.status(201).json({ message: USER_CREATED, user: createdUser });
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
@@ -57,7 +89,7 @@ exports.login = async (req, res, next) => {
     const { email, password } = req.body;
     const user = await User.findOne({ email: email });
     if (!user) {
-      const error = new Error("User not found");
+      const error = new Error(USER_NOT_FOUND);
       error.statusCode = 404;
       throw error;
     }
@@ -65,7 +97,7 @@ exports.login = async (req, res, next) => {
     const isEqual = await bcrypt.compare(password, user.password);
 
     if (!isEqual) {
-      const error = new Error("Password is not correct");
+      const error = new Error(PASSWORD_IS_INCORRECT);
       error.statusCode = 404;
       throw error;
     }
@@ -100,7 +132,7 @@ exports.resetPasswordRequest = async (req, res, next) => {
     const { email } = req.body;
     const user = await User.findOne({ email: email });
     if (!user) {
-      const error = new Error("Email is not recognized!");
+      const error = new Error(EMAIL_NOT_RECOGNIZED);
       error.statusCode = 404;
       throw error;
     }
@@ -120,18 +152,18 @@ exports.resetPasswordRequest = async (req, res, next) => {
 
     await sendEmail(
       email,
-      "Password reset request",
+      PASSWORD_RESET,
       {
         name: user.username,
-        text: "You requested password reset.",
-        action: "Please, click the link below to reset your password",
+        text: PASSWORD_RESET_TEXT,
+        action: PASSWORD_RESET_ACTION,
         link: url,
-        link_text: "Reset password",
+        link_text: RESET_PASSWORD_LINK_TEXT,
       },
       "./views/email-request.hbs"
     );
 
-    res.status(200).json({ message: "Check your email to reset password!" });
+    res.status(200).json({ message: CHECK_EMAIL_TO_RESET });
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
@@ -153,7 +185,7 @@ exports.resetPassword = async (req, res, next) => {
 
     if (password !== confirm_password) {
       return res.render("error.hbs", {
-        error: "Passwords are not the same! Try again",
+        error: PASSWORDS_NOT_THE_SAME,
       });
     }
     if (userId) {
@@ -169,24 +201,24 @@ exports.resetPassword = async (req, res, next) => {
           if (user && user.email) {
             await sendEmail(
               user.email,
-              "Password has been reset!",
+              PASSWORD_IS_RESET,
               {
                 name: user.username,
-                action: "You password has been reset.",
-                text: "Please, use new password to login in the Goals App",
+                action: PASSWORD_IS_RESET_ACTION,
+                text: PASSWORD_IS_RESET_TEXT,
               },
               "./views/email-request-result.hbs"
             );
           }
         } else {
-          throw new Error("Invalid or expired password reset token");
+          throw new Error(EXPIRED_TOKEN);
         }
       } else {
-        throw new Error("Invalid or expired password reset token");
+        throw new Error(EXPIRED_TOKEN);
       }
     }
 
-    res.status(200).json({ message: "Password is reset!" });
+    res.status(200).json({ message: PASSWORD_IS_RESET });
   } catch (err) {
     next(err);
   }
@@ -196,7 +228,7 @@ exports.deleteAccountRequest = async (req, res, next) => {
     const { email } = req.body;
     const user = await User.findOne({ email: email });
     if (!user) {
-      const error = new Error("User not found");
+      const error = new Error(USER_NOT_FOUND);
       error.statusCode = 404;
       throw error;
     }
@@ -216,20 +248,18 @@ exports.deleteAccountRequest = async (req, res, next) => {
 
     await sendEmail(
       email,
-      "Account delete request",
+      ACCOUNT_DELETE_REQUEST,
       {
         name: user.username,
-        text: "You requested to delete your account.",
-        action: "Please, click the link below to delete your account",
+        text: ACCOUNT_DELETE_REQUEST_TEXT,
+        action: ACCOUNT_DELETE_REQUEST_ACTION,
         link: url,
-        link_text: "Delete account",
+        link_text: DELETE_ACCOUNT_LINK_TEXT,
       },
       "./views/email-request.hbs"
     );
 
-    res
-      .status(200)
-      .json({ message: "Check your email and follow the instructions!" });
+    res.status(200).json({ message: CHECK_EMAIL_FOLLOW_INSTRUCTIONS });
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
@@ -252,7 +282,7 @@ exports.deleteUserAccount = async (req, res, next) => {
       const deleteToken = await Token.findOne({ userId: userId });
       const user = await User.findOne({ _id: userId });
       if (!user) {
-        throw new Error("User not found ");
+        throw new Error(USER_NOT_FOUND);
       }
       if (deleteToken) {
         const isValid = await bcrypt.compare(token, deleteToken.token);
@@ -262,7 +292,7 @@ exports.deleteUserAccount = async (req, res, next) => {
             const isEqual = await bcrypt.compare(password, user.password);
 
             if (!isEqual) {
-              const error = new Error("Password is not correct");
+              const error = new Error(PASSWORD_IS_INCORRECT);
               error.statusCode = 404;
               throw error;
             }
@@ -270,25 +300,25 @@ exports.deleteUserAccount = async (req, res, next) => {
             await Goal.deleteMany({ author: userId });
             await sendEmail(
               email,
-              "Sorry to see you go...",
+              SORRY_TO_SEE_YOU_GO,
               {
                 name: user.username,
-                content: "Sorry to see you go... . Come back soon...",
+                content: SORRY_TO_SEE_YOU_GO_CONTENT,
               },
               "./views/email-content.hbs"
             );
-            res.status(200).json({ message: "Account has been deleted!" });
+            res.status(200).json({ message: ACCOUNT_DELETED });
           } else {
-            throw new Error("User is not recognized!");
+            throw new Error(USER_NOT_RECOGNIZED);
           }
         } else {
-          throw new Error("Invalid or expired password reset token");
+          throw new Error(EXPIRED_TOKEN);
         }
       } else {
-        throw new Error("Invalid or expired password reset token");
+        throw new Error(EXPIRED_TOKEN);
       }
     } else {
-      throw new Error("Id or email not found ");
+      throw new Error(ID_OR_EMAIL_NOT_FOUND);
     }
   } catch (err) {
     next(err);
@@ -298,7 +328,7 @@ exports.updateUsername = async (req, res, next) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      const error = new Error("Validation failed, check entered data");
+      const error = new Error(VALIDATION_FAILED);
       error.data = errors.array();
       error.statusCode = 422;
       throw error;
@@ -308,16 +338,16 @@ exports.updateUsername = async (req, res, next) => {
     if (userId) {
       const user = await User.findOne({ _id: userId });
       if (!user) {
-        const error = new Error("User not found");
+        const error = new Error(USER_NOT_FOUND);
         error.statusCode = 404;
         throw error;
       }
       user.username = username;
       await user.save();
 
-      res.status(200).json({ message: "Username updated" });
+      res.status(200).json({ message: USERNAME_UPDATED });
     } else {
-      const error = new Error("User not found");
+      const error = new Error(USER_NOT_FOUND);
       error.statusCode = 404;
       throw error;
     }
@@ -345,27 +375,27 @@ exports.updatePassword = async (req, res, next) => {
           );
           await sendEmail(
             user.email,
-            "Password has been reset!",
+            PASSWORD_IS_RESET,
             {
               name: user.username,
-              action: "You password has been reset.",
-              text: "Please, use new password to login in the Goals App",
+              action: PASSWORD_IS_RESET_ACTION,
+              text: PASSWORD_IS_RESET_TEXT,
             },
             "./views/email-request-result.hbs"
           );
         } else {
-          const error = new Error("Email not found");
+          const error = new Error(EMAIL_NOT_FOUND);
           error.statusCode = 404;
           throw error;
         }
       }
     } else {
-      const error = new Error("User not found");
+      const error = new Error(USER_NOT_FOUND);
       error.statusCode = 404;
       throw error;
     }
 
-    res.status(200).json({ message: "Password updated" });
+    res.status(200).json({ message: PASSWORD_UPDATED });
   } catch (err) {
     next(err);
   }
